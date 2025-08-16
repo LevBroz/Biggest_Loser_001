@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Biggest Loser Challenge</title>
+                <link rel="stylesheet" href="style.css">
+                    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+                        <script defer src="app.js"></script>
+                        </head>
+                        <body>
+
+                            <div class="container">
+                                    <header>
+                                                <h1>Biggest Loser Challenge</h1>
+                                                            <p>Sigue el progreso de todos los participantes</p>
+                                                                    </header>
+
+                                                                            <section class="form-container">
+                                                                                        <h2>Añadir Nuevo Participante</h2>
+                                                                                                    <form id="participant-form">
+                                                                                                                    <input type="text" id="name" placeholder="Nombre del Participante" required>
+                                                                                                                                    <input type="number" step="0.1" id="weight" placeholder="Peso Inicial (kg)" required>
+                                                                                                                                                    <label for="before-photo">Foto del "Antes"</label>
+                                                                                                                                                                    <input type="file" id="before-photo" accept="image/*">
+                                                                                                                                                                                    <button type="submit">Añadir Participante</button>
+                                                                                                                                                                                                </form>
+                                                                                                                                                                                                        </section>
+
+                                                                                                                                                                                                                <main id="participants-list" class="participants-grid">
+                                                                                                                                                                                                                            </main>
+                                                                                                                                                                                                                                </div>
+
+                                                                                                                                                                                                                                </body>
+                                                                                                                                                                                                                                </html>
+                                                                                                                                                                                                                                
