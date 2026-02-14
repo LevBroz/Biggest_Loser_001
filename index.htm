@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Para el amor de mi vida</title>
-  <meta name="description" content="Una cartita con contador desde 9 de diciembre de 2015." />
 
   <style>
     :root{
@@ -46,21 +45,10 @@
       .card{grid-template-columns:1fr; padding:22px;}
     }
 
-    h1{
-      font-size:clamp(22px, 3vw, 32px);
-      margin:0 0 10px 0;
-      letter-spacing:.2px;
-    }
-    .letter{
-      line-height:1.45;
-      font-size:clamp(15px, 2.2vw, 18px);
-    }
+    h1{font-size:clamp(22px, 3vw, 32px); margin:0 0 10px 0;}
+    .letter{line-height:1.45; font-size:clamp(15px, 2.2vw, 18px);}
     .letter p{margin:.55rem 0}
-    .sig{
-      margin-top:14px;
-      color:var(--muted);
-      font-weight:600;
-    }
+    .sig{margin-top:14px; color:var(--muted); font-weight:600;}
     .counter{
       margin-top:18px;
       padding:14px 16px;
@@ -76,24 +64,10 @@
       letter-spacing:.3px;
     }
 
-    .treeWrap{display:grid;place-items:center;padding:6px 0;}
-    .canvasBox{
-      width:min(360px, 78vw);
-      aspect-ratio: 1/1.18;
-      position:relative;
-    }
-    canvas{
-      width:100%;
-      height:100%;
-      display:block;
-      border-radius:18px;
-    }
-    .footerNote{
-      margin-top:10px;
-      font-size:12px;
-      color:var(--muted);
-      text-align:center;
-    }
+    .treeWrap{display:grid; place-items:center; padding:6px 0;}
+    .canvasBox{width:min(360px, 78vw); aspect-ratio: 1/1.18;}
+    canvas{width:100%; height:100%; display:block; border-radius:18px;}
+    .footerNote{margin-top:10px; font-size:12px; color:var(--muted); text-align:center;}
   </style>
 </head>
 
@@ -128,8 +102,8 @@
     function updateTimer(){
       const now = new Date();
       let diff = Math.max(0, now - startDate);
-
       const sec = 1000, min = 60*sec, hour = 60*min, day = 24*hour;
+
       const days = Math.floor(diff / day); diff -= days * day;
       const hours = Math.floor(diff / hour); diff -= hours * hour;
       const minutes = Math.floor(diff / min); diff -= minutes * min;
@@ -142,240 +116,121 @@
     updateTimer();
     setInterval(updateTimer, 1000);
 
-    // ===================== CANVAS ÁRBOL =====================
+    // ===================== CANVAS: ÁRBOL NORMAL =====================
     const canvas = document.getElementById("c");
     const ctx = canvas.getContext("2d");
 
-    function resize() {
+    function resize(){
       const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const r = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(r.width * dpr);
+      canvas.height = Math.floor(r.height * dpr);
+      ctx.setTransform(dpr,0,0,dpr,0,0);
     }
     window.addEventListener("resize", resize);
     resize();
 
-    const rand = (a,b)=>Math.random()*(b-a)+a;
+    const rand=(a,b)=>Math.random()*(b-a)+a;
     const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-    // Parámetros fáciles de tunear
+    // Ajustes (rápidos y bonitos)
     const SETTINGS = {
-      petalsPerSec: 22,       // intensidad de caída
-      wind: 10,               // viento lateral (px)
-      gravity: 230,           // gravedad (px/s^2)
-      crownScale: 1.05,       // tamaño de la copa
-      heartFillCount: 220,    // cuántos corazoncitos “pegados” dentro de la copa
+      // “hojas pegadas” (muy pocas, para que no se vea tupido)
+      staticLeaves: 70,        // sube a 100 si lo quieres más lleno
+      // hojas cayendo
+      fallPerSec: 16,          // intensidad de caída
+      wind: 18,                // viento lateral
+      gravity: 260,            // gravedad
+      // tamaños de hojas
+      leafMin: 4,
+      leafMax: 8,
     };
 
-    // Corazón paramétrico (bonito y estable)
-    // Devuelve punto (x,y) en [-1..1]
-    function heartPoint(t){
-      const x = 16 * Math.pow(Math.sin(t), 3);
-      const y = 13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t);
-      // normalizar aprox
-      return { x: x/18, y: -y/18 };
+    // Árbol layout (en coords del canvas CSS pixels)
+    function getTree(w,h){
+      return {
+        canopy: { cx: w*0.5, cy: h*0.36, rx: w*0.28, ry: h*0.19 }, // copa ovalada
+        trunk:  { x: w*0.5, y: h*0.54, w: w*0.14, h: h*0.30 }     // tronco normal
+      };
     }
 
-    function drawHeartShapePath(cx, cy, size){
-      ctx.beginPath();
-      const steps = 220;
-      for(let i=0;i<=steps;i++){
-        const t = (i/steps) * Math.PI * 2;
-        const p = heartPoint(t);
-        const x = cx + p.x * size;
-        const y = cy + p.y * size;
-        if(i===0) ctx.moveTo(x,y);
-        else ctx.lineTo(x,y);
-      }
-      ctx.closePath();
-    }
-
-    function drawMiniHeart(x,y,s,alpha){
+    // Dibujo de corazoncito (hoja)
+    function drawHeart(x,y,s,rot,alpha,color){
       ctx.save();
       ctx.translate(x,y);
-      ctx.rotate(Math.PI/4);
+      ctx.rotate(rot);
       ctx.globalAlpha = alpha;
+      ctx.fillStyle = color;
+
+      // corazón simple: cuadrado rotado + 2 círculos
+      ctx.rotate(Math.PI/4);
       ctx.fillRect(-s/2, -s/2, s, s);
       ctx.beginPath();
       ctx.arc(-s/2, 0, s/2, 0, Math.PI*2);
       ctx.arc(0, -s/2, s/2, 0, Math.PI*2);
       ctx.fill();
+
       ctx.restore();
     }
 
-    // Partículas (pétalos)
-    const petals = [];
-
-    function spawnPetal(crown){
-      // nacer desde la copa: tomamos puntos aleatorios dentro del corazón
-      // usando rechazo: generamos en caja y validamos con clip del corazón aproximado
-      const attempts = 12;
-      let px=0, py=0;
-      for(let i=0;i<attempts;i++){
+    // hojas pegadas (pocas y bien distribuidas)
+    let staticLeaves = [];
+    function rebuildStaticLeaves(tree){
+      staticLeaves = [];
+      for(let i=0;i<SETTINGS.staticLeaves;i++){
+        // punto aleatorio dentro del óvalo (distribución uniforme)
         const t = rand(0, Math.PI*2);
-        const p = heartPoint(t);
-        // “jitter” hacia adentro
-        const inr = Math.sqrt(Math.random()) * 0.9;
-        px = crown.cx + p.x * crown.size * inr;
-        py = crown.cy + p.y * crown.size * inr;
-        // empuja un poco hacia arriba para que “salgan” del tope
-        py -= crown.size * 0.08;
-        break;
+        const r = Math.sqrt(Math.random()); // hacia adentro
+        const x = tree.canopy.cx + Math.cos(t) * tree.canopy.rx * r;
+        const y = tree.canopy.cy + Math.sin(t) * tree.canopy.ry * r;
+
+        const s = rand(SETTINGS.leafMin+1, SETTINGS.leafMax+3);
+        const rot = rand(-0.7, 0.7);
+        const a = rand(0.25, 0.55);
+
+        const R = Math.floor(rand(235, 255));
+        const G = Math.floor(rand(60, 140));
+        const B = Math.floor(rand(120, 190));
+        const color = `rgb(${R},${G},${B})`;
+
+        staticLeaves.push({x,y,s,rot,a,color});
       }
+    }
 
-      const s = rand(6, 11);
-      const hueR = Math.floor(rand(235, 255));
-      const hueG = Math.floor(rand(40, 120));
-      const hueB = Math.floor(rand(90, 175));
+    // partículas cayendo
+    const falling = [];
+    function spawnFalling(tree){
+      // nacer DESDE la copa (cerca de la parte superior)
+      // elegimos dentro del óvalo pero sesgado a la parte de arriba
+      const t = rand(Math.PI, Math.PI*2); // mitad superior (y negativa en sin)
+      const r = Math.sqrt(Math.random()) * 0.95;
+      const x = tree.canopy.cx + Math.cos(t) * tree.canopy.rx * r;
+      const y = tree.canopy.cy + Math.sin(t) * tree.canopy.ry * r;
 
-      petals.push({
-        x:px, y:py,
+      const s = rand(SETTINGS.leafMin, SETTINGS.leafMax);
+      const rot = rand(0, Math.PI*2);
+      const vr  = rand(-4, 4);
+
+      const R = Math.floor(rand(235, 255));
+      const G = Math.floor(rand(60, 140));
+      const B = Math.floor(rand(120, 200));
+      const color = `rgb(${R},${G},${B})`;
+
+      falling.push({
+        x, y,
         vx: rand(-SETTINGS.wind, SETTINGS.wind),
-        vy: rand(20, 70),
-        rot: rand(0, Math.PI*2),
-        vr: rand(-3, 3),
-        s,
+        vy: rand(20, 80),
+        s, rot, vr,
         life: rand(2.0, 3.6),
-        t:0,
-        color: `rgb(${hueR},${hueG},${hueB})`,
-        a: rand(0.65, 0.95)
+        t: 0,
+        a: rand(0.55, 0.95),
+        color,
+        wobble: rand(2.0, 5.0),
+        wobblePhase: rand(0, Math.PI*2)
       });
     }
 
-    // Corazoncitos “pegados” en la copa (relleno)
-    let crownDots = [];
-    function buildCrownDots(crown){
-      crownDots = [];
-      const n = SETTINGS.heartFillCount;
-      for(let i=0;i<n;i++){
-        const t = rand(0, Math.PI*2);
-        const p = heartPoint(t);
-        const inr = Math.sqrt(Math.random()) * 0.95;
-        const x = crown.cx + p.x * crown.size * inr;
-        const y = crown.cy + p.y * crown.size * inr;
-        const s = rand(6, 12);
-        const r = Math.floor(rand(235, 255));
-        const g = Math.floor(rand(40, 120));
-        const b = Math.floor(rand(90, 175));
-        crownDots.push({x,y,s, c:`rgb(${r},${g},${b})`, a: rand(0.45,0.9)});
-      }
-    }
-
-    let last = performance.now();
-    let petalAccumulator = 0;
-
-    function frame(now){
-      const dt = Math.min(0.033, (now - last)/1000);
-      last = now;
-
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-
-      // Layout del árbol
-      const crown = {
-        cx: w*0.5,
-        cy: h*0.34,
-        size: Math.min(w,h)*0.26 * SETTINGS.crownScale
-      };
-      const trunk = {
-        x: w*0.5,
-        y: h*0.55,
-        w: w*0.16,
-        h: h*0.28
-      };
-
-      // reconstruye dots si cambió tamaño (primera vez o resize)
-      if(crownDots.length === 0) buildCrownDots(crown);
-
-      // Fondo suave dentro del canvas
-      ctx.clearRect(0,0,w,h);
-
-      // Sombra suelo
-      ctx.save();
-      ctx.fillStyle = "rgba(0,0,0,0.08)";
-      ctx.beginPath();
-      ctx.ellipse(w*0.5, h*0.86, w*0.28, h*0.05, 0, 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-
-      // Tronco
-      ctx.save();
-      const grad = ctx.createLinearGradient(trunk.x, trunk.y, trunk.x, trunk.y+trunk.h);
-      grad.addColorStop(0, "#7a3e1e");
-      grad.addColorStop(1, "#4b220f");
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      const rx = trunk.w*0.45;
-      ctx.roundRect(trunk.x - trunk.w/2, trunk.y, trunk.w, trunk.h, rx);
-      ctx.fill();
-      ctx.restore();
-
-      // Copa: recorte corazón
-      ctx.save();
-      drawHeartShapePath(crown.cx, crown.cy, crown.size);
-      ctx.clip();
-
-      // Fondo tenue de la copa
-      ctx.fillStyle = "rgba(255, 0, 120, 0.05)";
-      ctx.fillRect(crown.cx - crown.size*1.2, crown.cy - crown.size*1.2, crown.size*2.4, crown.size*2.4);
-
-      // Relleno de “hojas” (corazones)
-      for(const d of crownDots){
-        ctx.fillStyle = d.c;
-        drawMiniHeart(d.x, d.y, d.s, d.a);
-      }
-      ctx.restore();
-
-      // Borde suave de la copa
-      ctx.save();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "rgba(255, 0, 120, 0.10)";
-      drawHeartShapePath(crown.cx, crown.cy, crown.size);
-      ctx.stroke();
-      ctx.restore();
-
-      // Spawn pétalos según tiempo
-      petalAccumulator += dt * SETTINGS.petalsPerSec;
-      while(petalAccumulator >= 1){
-        spawnPetal(crown);
-        petalAccumulator -= 1;
-      }
-
-      // Actualizar y dibujar pétalos (ya NO recortados, caen fuera del corazón)
-      for(let i=petals.length-1;i>=0;i--){
-        const p = petals[i];
-        p.t += dt;
-        p.vy += SETTINGS.gravity * dt;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.rot += p.vr * dt;
-
-        const fade = 1 - (p.t / p.life);
-        const alpha = clamp(p.a * fade, 0, 1);
-
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.rot);
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = alpha;
-        // dibujar corazoncito
-        ctx.rotate(Math.PI/4);
-        ctx.fillRect(-p.s/2, -p.s/2, p.s, p.s);
-        ctx.beginPath();
-        ctx.arc(-p.s/2, 0, p.s/2, 0, Math.PI*2);
-        ctx.arc(0, -p.s/2, p.s/2, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
-
-        // matar si murió o salió
-        if(p.t >= p.life || p.y > h + 40) petals.splice(i,1);
-      }
-
-      requestAnimationFrame(frame);
-    }
-
-    // Polyfill para roundRect (algunos browsers viejos)
+    // roundRect polyfill
     if(!CanvasRenderingContext2D.prototype.roundRect){
       CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
         r = Math.min(r, w/2, h/2);
@@ -390,10 +245,99 @@
       }
     }
 
-    // Rebuild dots on resize
-    const ro = new ResizeObserver(()=> {
+    let last = performance.now();
+    let acc = 0;
+
+    function frame(now){
+      const dt = Math.min(0.033, (now - last)/1000);
+      last = now;
+
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+
+      const tree = getTree(w,h);
+      if(staticLeaves.length === 0) rebuildStaticLeaves(tree);
+
+      // limpiar
+      ctx.clearRect(0,0,w,h);
+
+      // suelo sombra
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.08)";
+      ctx.beginPath();
+      ctx.ellipse(w*0.5, h*0.86, w*0.28, h*0.05, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+
+      // tronco
+      ctx.save();
+      const grad = ctx.createLinearGradient(tree.trunk.x, tree.trunk.y, tree.trunk.x, tree.trunk.y+tree.trunk.h);
+      grad.addColorStop(0, "#7a3e1e");
+      grad.addColorStop(1, "#4b220f");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(tree.trunk.x - tree.trunk.w/2, tree.trunk.y, tree.trunk.w, tree.trunk.h, tree.trunk.w*0.45);
+      ctx.fill();
+      ctx.restore();
+
+      // copa ovalada (árbol normal)
+      ctx.save();
+      const canopyGrad = ctx.createRadialGradient(
+        tree.canopy.cx, tree.canopy.cy - tree.canopy.ry*0.35, tree.canopy.ry*0.2,
+        tree.canopy.cx, tree.canopy.cy, tree.canopy.ry*1.35
+      );
+      canopyGrad.addColorStop(0, "rgba(255, 120, 185, 0.22)");
+      canopyGrad.addColorStop(1, "rgba(255, 120, 185, 0.06)");
+      ctx.fillStyle = canopyGrad;
+      ctx.beginPath();
+      ctx.ellipse(tree.canopy.cx, tree.canopy.cy, tree.canopy.rx, tree.canopy.ry, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = "rgba(255, 60, 150, 0.18)";
+      ctx.stroke();
+      ctx.restore();
+
+      // hojas pegadas (poquitas, para NO tupir)
+      for(const L of staticLeaves){
+        drawHeart(L.x, L.y, L.s, L.rot, L.a, L.color);
+      }
+
+      // spawn hojas cayendo
+      acc += dt * SETTINGS.fallPerSec;
+      while(acc >= 1){
+        spawnFalling(tree);
+        acc -= 1;
+      }
+
+      // actualizar/dibujar hojas cayendo
+      for(let i=falling.length-1;i>=0;i--){
+        const p = falling[i];
+        p.t += dt;
+
+        // flutter (zigzag leve)
+        const flutter = Math.sin(p.t * p.wobble + p.wobblePhase) * 18;
+
+        p.vy += SETTINGS.gravity * dt;
+        p.x  += (p.vx + flutter) * dt;
+        p.y  += p.vy * dt;
+        p.rot += p.vr * dt;
+
+        const fade = 1 - (p.t / p.life);
+        const alpha = clamp(p.a * fade, 0, 1);
+
+        drawHeart(p.x, p.y, p.s, p.rot, alpha, p.color);
+
+        if(p.t >= p.life || p.y > h + 40) falling.splice(i,1);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    // rebuild on resize
+    const ro = new ResizeObserver(()=>{
       resize();
-      crownDots = [];
+      staticLeaves = [];
     });
     ro.observe(canvas);
 
