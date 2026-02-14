@@ -128,44 +128,42 @@
     const rand=(a,b)=>Math.random()*(b-a)+a;
     const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
-    // look del TikTok: copa “nube” + corazones rojos + caída suave
     const SETTINGS = {
-      heartsOnCrown: 260, // hojas “pegadas” (se ve lleno como la foto)
-      fallPerSec: 22,     // caída constante
-      gravity: 260,
-      wind: 10,
+      heartsOnCrown: 260,
+      fallPerSec: 20,
+      gravity: 250,
+      baseWind: 6,
+      gustMax: 26,
       heartMin: 5,
       heartMax: 10,
     };
 
-    // corazón simple (hoja)
     function drawHeart(x,y,s,rot,alpha,color){
       ctx.save();
       ctx.translate(x,y);
       ctx.rotate(rot);
       ctx.globalAlpha = alpha;
       ctx.fillStyle = color;
-
       ctx.rotate(Math.PI/4);
       ctx.fillRect(-s/2, -s/2, s, s);
       ctx.beginPath();
       ctx.arc(-s/2, 0, s/2, 0, Math.PI*2);
       ctx.arc(0, -s/2, s/2, 0, Math.PI*2);
       ctx.fill();
-
       ctx.restore();
     }
 
-    // copa tipo “nube” (varios círculos superpuestos)
     function cloudCircles(w,h){
       const cx = w*0.60;
-      const cy = h*0.33;
+      const cy = h*0.32;
       const base = Math.min(w,h);
       return [
-        {x: cx- base*0.11, y: cy+ base*0.02, r: base*0.12},
-        {x: cx- base*0.02, y: cy- base*0.03, r: base*0.15},
-        {x: cx+ base*0.10, y: cy+ base*0.00, r: base*0.13},
-        {x: cx+ base*0.02, y: cy+ base*0.07, r: base*0.12},
+        {x: cx - base*0.20, y: cy + base*0.02, r: base*0.11},
+        {x: cx - base*0.11, y: cy - base*0.04, r: base*0.14},
+        {x: cx - base*0.01, y: cy + base*0.01, r: base*0.16},
+        {x: cx + base*0.11, y: cy - base*0.03, r: base*0.14},
+        {x: cx + base*0.20, y: cy + base*0.03, r: base*0.11},
+        {x: cx + base*0.04, y: cy + base*0.08, r: base*0.12},
       ];
     }
 
@@ -177,101 +175,65 @@
       return false;
     }
 
-    // cache de hojas pegadas
     let crownHearts = [];
     function rebuildCrownHearts(circles){
       crownHearts = [];
-      // caja bounding
       const minX = Math.min(...circles.map(c=>c.x-c.r));
       const maxX = Math.max(...circles.map(c=>c.x+c.r));
       const minY = Math.min(...circles.map(c=>c.y-c.r));
       const maxY = Math.max(...circles.map(c=>c.y+c.r));
 
       for(let i=0;i<SETTINGS.heartsOnCrown;i++){
-        // rechazo dentro de la nube
         let x,y;
-        for(let t=0;t<40;t++){
+        for(let t=0;t<50;t++){
           x = rand(minX, maxX);
           y = rand(minY, maxY);
           if(pointInsideCloud(x,y,circles)) break;
         }
-
         const s = rand(SETTINGS.heartMin, SETTINGS.heartMax);
         const rot = rand(-0.9, 0.9);
-
-        // paleta roja/rosada tipo TikTok
         const R = Math.floor(rand(230, 255));
-        const G = Math.floor(rand(40, 95));
-        const B = Math.floor(rand(55, 120));
+        const G = Math.floor(rand(25, 85));
+        const B = Math.floor(rand(40, 110));
         const a = rand(0.65, 0.95);
-
         crownHearts.push({x,y,s,rot,a,color:`rgb(${R},${G},${B})`});
       }
     }
 
-    // partículas que caen
     const falling = [];
     function spawnFalling(circles){
-      // caja
       const minX = Math.min(...circles.map(c=>c.x-c.r));
       const maxX = Math.max(...circles.map(c=>c.x+c.r));
       const minY = Math.min(...circles.map(c=>c.y-c.r));
       const maxY = Math.max(...circles.map(c=>c.y+c.r));
 
-      // nacer cerca de la parte superior de la copa
       let x,y;
       for(let t=0;t<60;t++){
         x = rand(minX, maxX);
-        y = rand(minY, minY + (maxY-minY)*0.35); // top 35%
+        y = rand(minY, minY + (maxY-minY)*0.30);
         if(pointInsideCloud(x,y,circles)) break;
       }
 
       const s = rand(SETTINGS.heartMin, SETTINGS.heartMax);
       const rot = rand(0, Math.PI*2);
       const vr  = rand(-4, 4);
-
       const R = Math.floor(rand(230, 255));
-      const G = Math.floor(rand(40, 95));
-      const B = Math.floor(rand(55, 120));
+      const G = Math.floor(rand(25, 85));
+      const B = Math.floor(rand(40, 110));
 
       falling.push({
         x,y,
-        vx: rand(-SETTINGS.wind, SETTINGS.wind),
+        vx: rand(-6, 6),
         vy: rand(40, 90),
         s, rot, vr,
         t:0,
-        life: rand(2.2, 3.6),
+        life: rand(2.4, 4.0),
         a: rand(0.55, 0.95),
         color: `rgb(${R},${G},${B})`,
         wobble: rand(2.5, 5.5),
         wobblePhase: rand(0, Math.PI*2),
+        drift: rand(0.8, 1.2)
       });
-    }
-
-    // tronco
-    function drawTrunk(w,h){
-      const x = w*0.60, y = h*0.52;
-      const tw = w*0.12, th = h*0.28;
-
-      ctx.save();
-      const grad = ctx.createLinearGradient(x, y, x, y+th);
-      grad.addColorStop(0, "#7a3e1e");
-      grad.addColorStop(1, "#4b220f");
-      ctx.fillStyle = grad;
-
-      const r = tw*0.45;
-      ctx.beginPath();
-      roundRect(ctx, x - tw/2, y, tw, th, r);
-      ctx.fill();
-      ctx.restore();
-
-      // sombra suelo
-      ctx.save();
-      ctx.fillStyle = "rgba(0,0,0,0.10)";
-      ctx.beginPath();
-      ctx.ellipse(x, h*0.84, w*0.22, h*0.04, 0, 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
     }
 
     function roundRect(ctx,x,y,w,h,r){
@@ -282,6 +244,49 @@
       ctx.arcTo(x, y+h, x, y, r);
       ctx.arcTo(x, y, x+w, y, r);
       ctx.closePath();
+    }
+
+    function drawTrunk(w,h){
+      const x = w*0.60;
+      const y = h*0.43;      // más arriba
+      const tw = w*0.12;
+      const th = h*0.40;     // más alto
+
+      // sombra suelo
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.10)";
+      ctx.beginPath();
+      ctx.ellipse(x, h*0.84, w*0.22, h*0.04, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+
+      // tronco (detrás)
+      ctx.save();
+      const grad = ctx.createLinearGradient(x, y, x, y+th);
+      grad.addColorStop(0, "#7a3e1e");
+      grad.addColorStop(1, "#4b220f");
+      ctx.fillStyle = grad;
+      const r = tw*0.45;
+      ctx.beginPath();
+      roundRect(ctx, x - tw/2, y, tw, th, r);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ===== VIENTO ALEATORIO (ráfagas) =====
+    let wind = SETTINGS.baseWind;
+    let windTarget = SETTINGS.baseWind;
+    let gustTimer = 0;
+
+    function updateWind(dt, time){
+      gustTimer -= dt;
+      if(gustTimer <= 0){
+        windTarget = rand(-SETTINGS.gustMax, SETTINGS.gustMax);
+        gustTimer = rand(0.6, 1.6);
+      }
+      wind += (windTarget - wind) * (1 - Math.pow(0.001, dt));
+      const breeze = Math.sin(time * 0.9) * 4 + Math.sin(time * 1.7) * 2;
+      return wind + breeze;
     }
 
     let last = performance.now();
@@ -295,24 +300,26 @@
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
 
-      // key para rebuild si cambia tamaño
-      const sizeKey = `${Math.round(w)}x${Math.round(h)}`;
       const circles = cloudCircles(w,h);
-
+      const sizeKey = `${Math.round(w)}x${Math.round(h)}`;
       if(sizeKey !== lastSizeKey){
         lastSizeKey = sizeKey;
         rebuildCrownHearts(circles);
       }
 
+      const globalWind = updateWind(dt, now/1000);
+
       ctx.clearRect(0,0,w,h);
 
-      // copa “nube” suave (fondo)
-      ctx.save();
-      const cx = w*0.60, cy = h*0.33;
-      const base = Math.min(w,h);
+      // 1) tronco detrás y llega hasta arriba
+      drawTrunk(w,h);
 
-      const canopyGrad = ctx.createRadialGradient(cx, cy - base*0.03, base*0.03, cx, cy, base*0.26);
-      canopyGrad.addColorStop(0, "rgba(255, 90, 160, 0.20)");
+      // 2) copa (nube) más horizontal
+      ctx.save();
+      const cx = w*0.60, cy = h*0.32;
+      const base = Math.min(w,h);
+      const canopyGrad = ctx.createRadialGradient(cx, cy - base*0.03, base*0.03, cx, cy, base*0.32);
+      canopyGrad.addColorStop(0, "rgba(255, 90, 160, 0.18)");
       canopyGrad.addColorStop(1, "rgba(255, 90, 160, 0.05)");
       ctx.fillStyle = canopyGrad;
 
@@ -322,28 +329,24 @@
         ctx.arc(c.x, c.y, c.r, 0, Math.PI*2);
       }
       ctx.fill();
-
       ctx.lineWidth = 2;
-      ctx.strokeStyle = "rgba(255, 70, 150, 0.14)";
+      ctx.strokeStyle = "rgba(255, 70, 150, 0.12)";
       ctx.stroke();
       ctx.restore();
 
-      // tronco
-      drawTrunk(w,h);
-
-      // hojas pegadas (como la primera foto: copa llena de corazoncitos)
+      // 3) hojas pegadas encima
       for(const L of crownHearts){
         drawHeart(L.x, L.y, L.s, L.rot, L.a, L.color);
       }
 
-      // spawn hojas cayendo
+      // 4) spawn caída
       acc += dt * SETTINGS.fallPerSec;
       while(acc >= 1){
         spawnFalling(circles);
         acc -= 1;
       }
 
-      // update/draw cayendo
+      // 5) actualizar con viento random (más fuerte conforme cae)
       for(let i=falling.length-1;i>=0;i--){
         const p = falling[i];
         p.t += dt;
@@ -351,8 +354,11 @@
         const flutter = Math.sin(p.t * p.wobble + p.wobblePhase) * 14;
 
         p.vy += SETTINGS.gravity * dt;
-        p.x  += (p.vx + flutter) * dt;
+
+        const windFactor = p.drift * (0.35 + 0.65 * (p.t / p.life));
+        p.x  += (p.vx + flutter + globalWind * windFactor) * dt;
         p.y  += p.vy * dt;
+
         p.rot += p.vr * dt;
 
         const fade = 1 - (p.t / p.life);
@@ -360,7 +366,7 @@
 
         drawHeart(p.x, p.y, p.s, p.rot, alpha, p.color);
 
-        if(p.t >= p.life || p.y > h + 40) falling.splice(i,1);
+        if(p.t >= p.life || p.y > h + 50) falling.splice(i,1);
       }
 
       requestAnimationFrame(frame);
