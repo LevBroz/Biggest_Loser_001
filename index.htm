@@ -4,14 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Para el amor de mi vida</title>
-  <meta name="description" content="Una cartita con contador desde 9 de diciembre de 2015." />
-
-  <!-- Open Graph para que salga bonito al pegar en WhatsApp -->
-  <meta property="og:title" content="¿Quieres ser mi San Valentín? 💘" />
-  <meta property="og:description" content="Una cartita con nuestro contador ❤️" />
-  <!-- Pon aquí una imagen tuya (URL pública) cuando lo subas -->
-  <meta property="og:image" content="https://example.com/preview.jpg" />
-  <meta property="og:type" content="website" />
 
   <style>
     :root{
@@ -38,34 +30,25 @@
       overflow-x:hidden;
     }
 
-    /* corazones flotando */
-    .hearts{
-      position:fixed;
-      inset:0;
-      pointer-events:none;
-      overflow:hidden;
-      opacity:.8;
+    /* corazones suaves de fondo (opcional) */
+    .bgHearts{
+      position:fixed; inset:0; pointer-events:none; overflow:hidden; opacity:.55;
     }
-    .heart{
-      position:absolute;
-      bottom:-40px;
+    .bgHeart{
+      position:absolute; bottom:-40px;
       width:14px;height:14px;
-      background:rgba(255, 90, 170, .85);
+      background:rgba(255, 90, 170, .6);
       transform:rotate(45deg);
       animation: floatUp linear infinite;
       filter: blur(.2px);
     }
-    .heart::before,.heart::after{
-      content:"";
-      position:absolute;
-      width:14px;height:14px;
-      background:inherit;
-      border-radius:50%;
+    .bgHeart::before,.bgHeart::after{
+      content:""; position:absolute; width:14px;height:14px; background:inherit; border-radius:50%;
     }
-    .heart::before{left:-7px; top:0;}
-    .heart::after{left:0; top:-7px;}
+    .bgHeart::before{left:-7px; top:0;}
+    .bgHeart::after{left:0; top:-7px;}
     @keyframes floatUp{
-      from{ transform: translateY(0) rotate(45deg); opacity:.9;}
+      from{ transform: translateY(0) rotate(45deg); opacity:.55;}
       to{ transform: translateY(-120vh) rotate(45deg); opacity:0;}
     }
 
@@ -119,7 +102,7 @@
       letter-spacing:.3px;
     }
 
-    /* Árbol de corazones */
+    /* ========== ÁRBOL DE CORAZONES ========== */
     .treeWrap{
       display:grid;
       place-items:center;
@@ -127,34 +110,40 @@
     }
     .tree{
       position:relative;
-      width:min(320px, 70vw);
-      aspect-ratio: 1/1.1;
+      width:min(340px, 78vw);
+      aspect-ratio: 1/1.18;
+      overflow:visible;
     }
+
+    /* Copa (forma de corazón) */
     .crown{
       position:absolute;
       left:50%;
-      top:10%;
+      top:6%;
       transform:translateX(-50%);
-      width:78%;
+      width:86%;
       height:62%;
-      display:grid;
-      place-items:center;
+      filter: drop-shadow(0 14px 22px rgba(0,0,0,.18));
     }
-    .crownInner{
-      position:relative;
-      width:100%;
-      height:100%;
-      border-radius:48% 48% 45% 45%;
+    .heartCrown{
+      position:absolute;
+      inset:0;
+      /* fondo suave dentro del corazón */
+      background: rgba(255, 0, 120, 0.06);
+      /* forma corazón con clip-path */
+      clip-path: path("M 170 300 C 40 220 15 140 65 95 C 105 60 150 70 170 105 C 190 70 235 60 275 95 C 325 140 300 220 170 300 Z");
+      border-radius:20px;
       overflow:hidden;
-      filter: drop-shadow(0 12px 22px rgba(0,0,0,.18));
     }
-    /* muchos corazoncitos como “hojas” */
+
+    /* corazones “hojas” dentro de la copa */
     .leaf{
       position:absolute;
       width:14px;height:14px;
       transform:rotate(45deg);
       background:rgba(255, 60, 120, .92);
       opacity:.95;
+      pointer-events:none;
     }
     .leaf::before,.leaf::after{
       content:"";
@@ -166,27 +155,68 @@
     .leaf::before{left:-7px; top:0}
     .leaf::after{left:0; top:-7px}
 
+    /* Tronco */
     .trunk{
       position:absolute;
       left:50%;
-      bottom:6%;
+      bottom:8%;
       transform:translateX(-50%);
       width:18%;
-      height:32%;
+      height:34%;
       background: linear-gradient(#7a3e1e, #5a2b13);
       border-radius:18px;
       box-shadow: 0 12px 18px rgba(0,0,0,.18);
+      z-index:2;
     }
     .ground{
       position:absolute;
       left:50%;
-      bottom:3%;
+      bottom:4%;
       transform:translateX(-50%);
-      width:70%;
+      width:76%;
       height:10%;
       background:rgba(0,0,0,.06);
       border-radius:999px;
       filter: blur(.2px);
+      z-index:1;
+    }
+
+    /* Contenedor de “pétalos” que caen desde el árbol */
+    .petalLayer{
+      position:absolute;
+      left:50%;
+      top:6%;
+      transform:translateX(-50%);
+      width:86%;
+      height:62%;
+      pointer-events:none;
+      z-index:3;
+      /* IMPORTANTÍSIMO: para calcular coordenadas dentro de este layer */
+    }
+
+    .petal{
+      position:absolute;
+      top:-10px;
+      width:12px;height:12px;
+      transform:rotate(45deg);
+      opacity:.9;
+      animation: fall linear forwards;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,.12));
+    }
+    .petal::before,.petal::after{
+      content:"";
+      position:absolute;
+      width:12px;height:12px;
+      background:inherit;
+      border-radius:50%;
+    }
+    .petal::before{left:-6px; top:0}
+    .petal::after{left:0; top:-6px}
+
+    @keyframes fall{
+      0%   { transform: translate(0, 0) rotate(45deg); opacity:0; }
+      10%  { opacity:.9; }
+      100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity:0; }
     }
 
     .footerNote{
@@ -199,9 +229,9 @@
 </head>
 
 <body>
-  <div class="hearts" id="bgHearts"></div>
+  <div class="bgHearts" id="bgHearts"></div>
 
-  <main class="card" role="main">
+  <main class="card">
     <section>
       <h1>Para el amor de mi vida:</h1>
 
@@ -217,10 +247,11 @@
       </div>
     </section>
 
-    <section class="treeWrap" aria-hidden="true">
+    <section class="treeWrap">
       <div class="tree">
-        <div class="crown">
-          <div class="crownInner" id="crown"></div>
+        <div class="crown" id="crownBox">
+          <div class="heartCrown" id="heartCrown"></div>
+          <div class="petalLayer" id="petalLayer"></div>
         </div>
         <div class="trunk"></div>
         <div class="ground"></div>
@@ -230,14 +261,12 @@
   </main>
 
   <script>
-    // ========= 1) CONFIGURA AQUÍ LA FECHA DE INICIO =========
-    // 9 de diciembre de 2015 00:00 (hora local)
-    const startDate = new Date(2015, 11, 9, 0, 0, 0); // (año, mes-1, día)
+    // ========= 1) FECHA DE INICIO =========
+    const startDate = new Date(2015, 11, 9, 0, 0, 0); // 9-dic-2015 (hora local)
 
-    // ========= 2) CONTADOR =========
     function updateTimer(){
       const now = new Date();
-      let diff = Math.max(0, now - startDate); // ms
+      let diff = Math.max(0, now - startDate);
 
       const sec = 1000;
       const min = 60 * sec;
@@ -256,57 +285,109 @@
     updateTimer();
     setInterval(updateTimer, 1000);
 
-    // ========= 3) “HOJAS” DE CORAZÓN PARA LA COPA DEL ÁRBOL =========
-    // Genera corazoncitos random dentro de un óvalo (copa del árbol)
-    const crown = document.getElementById("crown");
-    const leafCount = 160;
+    // ========= 2) RELLENAR LA COPA CON “HOJAS” (corazones) =========
+    const crownEl = document.getElementById("heartCrown");
+    const leafCount = 180;
 
-    function rand(min, max){ return Math.random() * (max - min) + min; }
+    const rand = (a,b)=> Math.random()*(b-a)+a;
+
+    // Truco: generamos puntos dentro del VIEWBOX (340x340 aprox) y los ponemos en %
+    // Además “filtramos” con una función de corazón aproximada para que queden dentro.
+    // (No es matemáticamente perfecto, pero visualmente queda MUY parecido.)
+    function insideHeart(nx, ny){
+      // nx, ny en [-1,1]
+      // función típica de corazón: (x^2 + y^2 - 1)^3 - x^2 y^3 <= 0
+      const x = nx, y = ny;
+      const a = (x*x + y*y - 1);
+      return (a*a*a - x*x*y*y*y) <= 0;
+    }
 
     for(let i=0;i<leafCount;i++){
       const leaf = document.createElement("div");
       leaf.className = "leaf";
 
-      // Coordenadas en un óvalo
-      // Usamos rechazo simple: si cae fuera de la elipse, reintenta
-      let x, y;
-      for(let tries=0; tries<20; tries++){
-        x = rand(0, 100);
-        y = rand(0, 100);
-        const nx = (x-50)/50;
-        const ny = (y-50)/50;
-        // elipse un poco “corazón”
-        if((nx*nx + ny*ny) <= 1.0 && y < 92) break;
+      let x=50,y=50;
+      for(let t=0;t<40;t++){
+        const px = rand(0,100);
+        const py = rand(0,100);
+        // convertir a [-1,1] y ajustar para que el corazón no quede tan “aplastado”
+        const nx = (px-50)/50;
+        const ny = (py-55)/50; // sube un poquito la masa
+        if(insideHeart(nx*1.05, ny*1.1) && py < 98){
+          x=px; y=py; break;
+        }
       }
 
+      const size = rand(10, 18);
       leaf.style.left = `${x}%`;
       leaf.style.top = `${y}%`;
-      leaf.style.width = `${rand(10, 18)}px`;
-      leaf.style.height = leaf.style.width;
+      leaf.style.width = `${size}px`;
+      leaf.style.height = `${size}px`;
 
-      // variación de color/opacity
       const r = Math.floor(rand(235, 255));
       const g = Math.floor(rand(40, 120));
-      const b = Math.floor(rand(90, 160));
-      leaf.style.background = `rgba(${r},${g},${b},${rand(.75,.95)})`;
+      const b = Math.floor(rand(90, 170));
+      leaf.style.background = `rgba(${r},${g},${b},${rand(.78,.96)})`;
 
-      crown.appendChild(leaf);
+      crownEl.appendChild(leaf);
     }
 
-    // ========= 4) CORAZONES FLOTANTES DE FONDO =========
-    const bg = document.getElementById("bgHearts");
-    const bgCount = 26;
+    // ========= 3) PÉTALOS CAYENDO DESDE EL ÁRBOL =========
+    const petalLayer = document.getElementById("petalLayer");
 
+    function spawnPetal(){
+      const p = document.createElement("div");
+      p.className = "petal";
+
+      // Posición: dentro de la copa (más hacia arriba para que “salgan” del árbol)
+      // x en 15%..85%, y en 0%..20%
+      const x = rand(15, 85);
+      const y = rand(0, 18);
+
+      const size = rand(10, 16);
+      p.style.left = `${x}%`;
+      p.style.top = `${y}%`;
+      p.style.width = `${size}px`;
+      p.style.height = `${size}px`;
+
+      // color parecido a los leaves
+      const r = Math.floor(rand(235, 255));
+      const g = Math.floor(rand(40, 110));
+      const b = Math.floor(rand(90, 165));
+      p.style.background = `rgba(${r},${g},${b},${rand(.75,.95)})`;
+
+      // movimiento: cae hacia abajo, con drift lateral leve
+      const dx = `${rand(-60, 60)}px`;
+      const dy = `${rand(280, 420)}px`;
+      const rot = `${Math.floor(rand(30, 160))}deg`;
+      p.style.setProperty("--dx", dx);
+      p.style.setProperty("--dy", dy);
+      p.style.setProperty("--rot", rot);
+
+      const dur = rand(2.8, 5.5);
+      p.style.animationDuration = `${dur}s`;
+
+      petalLayer.appendChild(p);
+      p.addEventListener("animationend", () => p.remove());
+    }
+
+    // más pétalos al inicio y luego continuo
+    for(let i=0;i<14;i++) setTimeout(spawnPetal, i*120);
+    setInterval(spawnPetal, 220);
+
+    // ========= 4) Corazones de fondo (suaves) =========
+    const bg = document.getElementById("bgHearts");
+    const bgCount = 18;
     for(let i=0;i<bgCount;i++){
       const h = document.createElement("div");
-      h.className = "heart";
-      const size = rand(10, 22);
+      h.className = "bgHeart";
+      const size = rand(10, 20);
       h.style.left = `${rand(0, 100)}%`;
       h.style.width = `${size}px`;
       h.style.height = `${size}px`;
-      h.style.animationDuration = `${rand(6, 14)}s`;
-      h.style.animationDelay = `${rand(0, 8)}s`;
-      h.style.opacity = rand(.2, .7);
+      h.style.animationDuration = `${rand(7, 15)}s`;
+      h.style.animationDelay = `${rand(0, 10)}s`;
+      h.style.opacity = rand(.15, .45);
       bg.appendChild(h);
     }
   </script>
